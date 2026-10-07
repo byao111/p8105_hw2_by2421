@@ -71,5 +71,50 @@ There are 60 distinct stations serving the A train, of which 17 are ADA complian
 
 
 Problem2
+```{r}
+mr_trash = read_excel(
+  "data/202610 Trash Wheel Collection Data.xlsx",
+  sheet = "Mr. Trash Wheel",
+  range = cell_limits(c(2, 1), c(NA, 14))
+) |>
+  clean_names() |>
+  filter(!is.na(dumpster)) |>
+  mutate(
+    year = as.integer(year),
+    sports_balls = as.integer(round(sports_balls)),
+    trash_wheel = "Mr. Trash Wheel"
+  )
+
+professor_trash = read_excel(
+  "data/202610 Trash Wheel Collection Data.xlsx",
+  sheet = "Professor Trash Wheel",
+  range = cell_limits(c(2, 1), c(NA, 13)),
+  na = c("", "NA", "dive")
+) |>
+  clean_names() |>
+  filter(!is.na(dumpster)) |>
+  mutate(
+    year = as.integer(year),
+    trash_wheel = "Professor Trash Wheel"
+  )
+
+gwynnda_trash = read_excel(
+  "data/202610 Trash Wheel Collection Data.xlsx",
+  sheet = "Gwynnda the Good Wheel of the W",
+  range = cell_limits(c(2, 1), c(NA, 12))
+) |>
+  clean_names() |>
+  filter(!is.na(dumpster)) |>
+  mutate(
+    year = as.integer(year),
+    trash_wheel = "Gwynnda"
+  )
+
+trash_wheels = bind_rows(
+  mr_trash,
+  professor_trash,
+  gwynnda_trash
+)
+```
 
 
