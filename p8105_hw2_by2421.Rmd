@@ -1,0 +1,75 @@
+---
+title: "Homework 2"
+author: "Bowen Yao"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(janitor)
+```
+
+Problem 1
+```{r}
+subway = read_csv(
+  "data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv",
+  show_col_types = FALSE
+) |>
+  clean_names() |>
+  select(
+    line, station_name, station_latitude, station_longitude,
+    route1:route11, entry, vending, entrance_type, ada
+  ) |>
+  mutate(entry = entry == "YES")
+
+dim(subway)
+```
+The dataset contains information about subway entrances and exits, including station name, line, coordinates, routes served, entry permission, vending, entrance type, and ADA compliance. I standardized the column names, kept the requested variables, and converted entry to a logical variable. The cleaned dataset has 1868 rows and 19 columns. It is not tidy yet because the routes are spread across multiple columns.
+
+```{r}
+subway |>
+  distinct(line, station_name) |>
+  nrow()
+
+subway |>
+  filter(ada) |>
+  distinct(line, station_name) |>
+  nrow()
+```
+There are 465 distinct stations, including 84 ADA-compliant stations. 
+```{r}
+subway |>
+  filter(vending == "NO") |>
+  summarise(proportion_allowing_entry = mean(entry))
+```
+Among entrances/exits without vending, approximately 37.70% allow entry.
+```{r}
+subway_routes = subway |>
+  pivot_longer(
+    cols = route1:route11,
+    names_to = "route_number",
+    names_prefix = "route",
+    values_to = "route_name",
+    values_transform = list(route_name = as.character),
+    values_drop_na = TRUE
+  )
+
+subway_routes |>
+  filter(route_name == "A") |>
+  distinct(line, station_name) |>
+  nrow()
+
+subway_routes |>
+  filter(route_name == "A", ada) |>
+  distinct(line, station_name) |>
+  nrow()
+```
+
+There are 60 distinct stations serving the A train, of which 17 are ADA compliant.
+
+
+
+Problem2
+
+
