@@ -4,7 +4,7 @@ author: "Bowen Yao"
 output: github_document
 ---
 
-```{r}
+```{r, message=FALSE}
 library(tidyverse)
 library(readxl)
 library(janitor)
@@ -147,6 +147,98 @@ types of trash. Professor Trash Wheel collected
 `r round(professor_weight, 2)` tons of trash. Gwynnda collected
 `r format(gwynnda_cigarettes, cientific = FALSE)` cigarette butts in June 2022.
 
+Problem 3
 
+```{r}
+baseline_raw = read_csv(
+  "data/data_mci/MCI_baseline.csv",
+  skip = 1,
+  na = c("", "NA", "."),
+  show_col_types = FALSE
+) |>
+  clean_names()
 
+baseline = baseline_raw |>
+  filter(is.na(age_at_onset) | age_at_onset > current_age) |>
+  mutate(
+    sex = factor(
+      sex,
+      levels = c(0, 1),
+      labels = c("Female", "Male")
+    ),
+    apoe4 = factor(
+      apoe4,
+      levels = c(0, 1),
+      labels = c("Non-carrier", "Carrier")
+    )
+  )
+```
 
+```{r}
+nrow(baseline_raw)
+
+baseline |>
+  summarise(
+    eligible_participants = n(),
+    developed_mci = sum(!is.na(age_at_onset)),
+    average_baseline_age = mean(current_age)
+  )
+
+baseline |>
+  filter(sex == "Female") |>
+  summarise(
+    proportion_apoe4_carriers = mean(apoe4 == "Carrier")
+  )
+```
+I skipped the descriptive first row, standardized column names, and treated periods as missing values. Sex and APOE4 status were converted to factors. I excluded participants whose MCI onset age was less than or equal to their baseline age. Participants with missing onset age were kept because they remained MCI free during follow-up.
+The original dataset contains 483 participants. Four already had MCI at baseline, leaving 479 eligible participants. Among these, 93 developed MCI. The average baseline age was 65.03 years. Among women, 30% were APOE4 carriers.
+
+```{r}
+amyloid = read_csv(
+  "data/data_mci/mci_amyloid.csv",
+  skip = 1,
+  show_col_types = FALSE
+) |>
+  clean_names() |>
+  rename(
+    id = study_id,
+    time_0 = baseline
+  ) |>
+  pivot_longer(
+    cols = starts_with("time_"),
+    names_to = "time",
+    names_prefix = "time_",
+    names_transform = list(time = as.integer),
+    values_to = "amyloid_ratio"
+  )
+```
+I skipped the descriptive first row and standardized the column names. I renamed the participant identifier to match the baseline dataset and reshaped the measurement columns into time and amyloid-ratio columns. Time represents years since baseline: 0, 2, 4, 6, and 8. The tidy dataset contains 487 participants, 2435 rows, and three columns. Missing amyloid measurements were kept as missing values.
+
+```{r}
+baseline_only = anti_join(
+  baseline,
+  amyloid,
+  by = "id"
+)
+
+amyloid_only = amyloid |>
+  distinct(id) |>
+  anti_join(baseline, by = "id")
+
+baseline_only |>
+  select(id)
+
+amyloid_only
+```
+After applying the baseline inclusion criteria, eight participants appear only in the baseline dataset: 14, 49, 92, 179, 268, 304, 389, and 412. Sixteen appear only in the amyloid dataset: 72, 234, 283, 380, and 484 through 495. The first four were excluded from the baseline dataset because they already had MCI; the other 12 were absent from the original baseline file.
+
+```{r}
+combined_mci = inner_join(
+  baseline,
+  amyloid,
+  by = "id"
+)
+
+write_csv(combined_mci, "data/combined_mci.csv")
+```
+The combined dataset has 471 eligible participants, 2355 rows, and eight columns. Each participant has five rows corresponding to the five measurement times, with baseline demographics repeated across those rows. Only participants present in both datasets are kept.
